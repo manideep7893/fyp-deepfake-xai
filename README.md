@@ -4,6 +4,8 @@ This project implements an **Explainable AI (XAI) pipeline for deepfake detectio
 
 The system is evaluated on the **Celeb-DF (v2)** dataset and is designed for **frame-level and face-level explainability**, suitable for academic projects and final-year dissertations.
 
+Although earlier deepfake detection systems primarily relied on convolutional neural networks (CNNs), this project adopts a modern Vision Transformer–based architecture for classification. CNN-based principles remain central to the pipeline, particularly for spatial feature localisation, face detection, and explainability through Grad-CAM and faithfulness metrics. This allows the system to combine the representational power of transformers with well-established CNN-inspired XAI techniques.
+
 ---
 
 ## 🔍 Key Features
