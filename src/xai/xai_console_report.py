@@ -131,29 +131,46 @@ def pick_target_layer(hf_model: nn.Module) -> nn.Module:
 # If mediapipe isn't available, falls back to "whole image".
 # ----------------------------
 def build_region_masks(img_bgr: np.ndarray):
+    """
+    MediaPipe TASKS FaceLandmarker (works with mediapipe 0.10.32 where mp.solutions is absent).
+    Returns: mouth_mask, leye_mask, boundary_mask, ok
+    """
     H, W = img_bgr.shape[:2]
     mouth_mask = np.zeros((H, W), dtype=np.uint8)
-    leye_mask = np.zeros((H, W), dtype=np.uint8)
-    face_mask = np.ones((H, W), dtype=np.uint8)  # default: whole image
+    leye_mask  = np.zeros((H, W), dtype=np.uint8)
+    boundary_mask = np.zeros((H, W), dtype=np.uint8)
 
     try:
-        import mediapipe as mp  # type: ignore
-        mp_face = mp.solutions.face_mesh
+        import mediapipe as mp
+        from mediapipe.tasks import python as mp_python
+        from mediapipe.tasks.python import vision as mp_vision
 
-        # FaceMesh expects RGB
+        # ✅ Use your local task file (make sure it exists)
+        model_path = "models/face_landmarker.task"
+
+        options = mp_vision.FaceLandmarkerOptions(
+            base_options=mp_python.BaseOptions(model_asset_path=model_path),
+            running_mode=mp_vision.RunningMode.IMAGE,
+            num_faces=1,
+            min_face_detection_confidence=0.3,
+            min_face_presence_confidence=0.3,
+            output_face_blendshapes=False,
+            output_facial_transformation_matrixes=False,
+        )
+
+        # BGR -> RGB
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-        with mp_face.FaceMesh(
-            static_image_mode=True,
-            refine_landmarks=True,
-            max_num_faces=1,
-            min_detection_confidence=0.5
-        ) as fm:
-            res = fm.process(img_rgb)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
 
-        if not res.multi_face_landmarks:
+        with mp_vision.FaceLandmarker.create_from_options(options) as landmarker:
+            result = landmarker.detect(mp_image)
+
+        if not result.face_landmarks:
+            # no face found
+            face_mask = np.ones((H, W), dtype=np.uint8)
             return mouth_mask, leye_mask, face_mask, False
 
-        lm = res.multi_face_landmarks[0].landmark
+        lm = result.face_landmarks[0]  # list of NormalizedLandmark
 
         def pts(indices):
             arr = []
@@ -163,25 +180,20 @@ def build_region_masks(img_bgr: np.ndarray):
                 arr.append([x, y])
             return np.array(arr, dtype=np.int32)
 
-        # MediaPipe landmark groups (good-enough, stable)
-        # Mouth: outer lips ring-ish
+        # Indices (same as your FaceMesh set)
         MOUTH = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291]
-        # Left eye: around left eye
         LEFT_EYE = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246]
-        # Face boundary (oval): use face oval indices
         FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379,
                      378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127,
                      162, 21, 54, 103, 67, 109]
 
-        cv2.fillPoly(mouth_mask, [pts(MOUTH)], 1)
-        cv2.fillPoly(leye_mask, [pts(LEFT_EYE)], 1)
-
         face_mask = np.zeros((H, W), dtype=np.uint8)
-        cv2.fillPoly(face_mask, [pts(FACE_OVAL)], 1)
+        cv2.fillPoly(mouth_mask, [pts(MOUTH)], 1)
+        cv2.fillPoly(leye_mask,  [pts(LEFT_EYE)], 1)
+        cv2.fillPoly(face_mask,  [pts(FACE_OVAL)], 1)
 
-        # "Face boundary" = ring near edge of face oval (band)
-        # We'll approximate boundary by erode face mask and subtract.
-        k = max(3, int(min(H, W) * 0.02))  # ~2% thickness
+        # boundary band = face oval - eroded inner face
+        k = max(3, int(min(H, W) * 0.02))
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
         inner = cv2.erode(face_mask, kernel, iterations=1)
         boundary_mask = (face_mask.astype(np.int16) - inner.astype(np.int16))
@@ -189,10 +201,11 @@ def build_region_masks(img_bgr: np.ndarray):
 
         return mouth_mask, leye_mask, boundary_mask, True
 
-    except Exception:
-        # mediapipe not installed or face not detected
+    except Exception as e:
+        # ✅ Don’t silently hide the reason
+        print("[FaceLandmarker ERROR]", repr(e))
+        face_mask = np.ones((H, W), dtype=np.uint8)
         return mouth_mask, leye_mask, face_mask, False
-
 
 def region_percentages(cam: np.ndarray, img_bgr: np.ndarray):
     """
@@ -310,21 +323,22 @@ def faithfulness_auc(
 # ----------------------------
 # Simple explanation templating
 # ----------------------------
-def make_explanation(pred_label: str, region_pcts: dict, has_face: bool):
+def make_explanation(pred_label: str, region_pcts: dict, has_face: bool, min_pct: float = 1.0):
     if not has_face:
         return (
             "No face landmarks were detected reliably, so the explanation is based on general "
             "image regions rather than facial sub-regions."
         )
 
-    # pick top regions by percentage
     regions = [
-        ("mouth", region_pcts["mouth_pct"]),
-        ("left eye", region_pcts["left_eye_pct"]),
-        ("face boundary", region_pcts["face_boundary_pct"]),
+        ("mouth", float(region_pcts.get("mouth_pct", 0.0))),
+        ("left eye", float(region_pcts.get("left_eye_pct", 0.0))),
+        ("face boundary", float(region_pcts.get("face_boundary_pct", 0.0))),
     ]
     regions_sorted = sorted(regions, key=lambda x: x[1], reverse=True)
-    top_names = [r[0] for r in regions_sorted if r[1] > 0][:2]
+
+    # keep only names whose % >= threshold
+    top_names = [name for name, pct in regions_sorted if pct >= min_pct][:2]
     if not top_names:
         top_names = ["face region"]
 
@@ -434,9 +448,9 @@ def main():
     print(f"\nPrediction: {pred_label} (confidence: {confidence:.2f})\n")
 
     print("Salient regions:")
-    print(f"- Mouth region: {pcts['mouth_pct']:.0f}%")
-    print(f"- Left eye region: {pcts['left_eye_pct']:.0f}%")
-    print(f"- Face boundary: {pcts['face_boundary_pct']:.0f}%\n")
+    print(f"- Mouth region: {pcts['mouth_pct']:.2f}%")
+    print(f"- Left eye region: {pcts['left_eye_pct']:.2f}%")
+    print(f"- Face boundary: {pcts['face_boundary_pct']:.2f}%\n")
 
     print("Faithfulness score:")
     print(f"- Deletion AUC: {deletion_auc:.2f} (sharp confidence drop)" if deletion_auc < insertion_auc else f"- Deletion AUC: {deletion_auc:.2f}")

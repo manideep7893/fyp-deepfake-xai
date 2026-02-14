@@ -15,3 +15,5 @@ data/**/*
 # Outputs / predictions / xai artefacts (do NOT commit)
 outputs/
 outputs/**/*
+models/
+*.task
