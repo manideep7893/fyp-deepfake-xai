@@ -8,11 +8,10 @@ __pycache__/
 **/__pycache__/
 *.pyc
 
-# Datasets (do NOT commit)
-data/
+# Datasets 
 data/**/*
 
-# Outputs / predictions / xai artefacts (do NOT commit)
+# Outputs / predictions / xai artefacts 
 outputs/
 outputs/**/*
 models/
