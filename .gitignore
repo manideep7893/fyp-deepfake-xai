@@ -16,3 +16,9 @@ outputs/
 outputs/**/*
 models/
 *.task
+
+__pycache__/
+*.pyc
+.DS_Store
+outputs/
+data/celebdf/
