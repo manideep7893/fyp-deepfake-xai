@@ -1,254 +1,248 @@
-# DeepFake XAI – Explainable Deepfake Detection (Celeb-DF v2)
+# Reliability-Aware Explainable Deepfake Detection using Multi-Model Ensemble and Vision Transformers (Celeb-DF v2)
 
-This project implements an **Explainable AI (XAI) pipeline for deepfake detection**, combining a pretrained Vision Transformer deepfake detector with:
+This project implements a **reliability-aware, explainable deepfake detection system**, combining:
 
-- Grad-CAM visual explanations  
-- Region-level attribution analysis  
-- Faithfulness evaluation (Insertion / Deletion AUC)  
-- Threshold calibration and ROC/PR analysis  
+- Vision Transformer-based deepfake detection
+- Multi-model ensemble fusion (M1–M3)
+- Scenario-based reliability analysis (S1–S4)
+- Grad-CAM visual explanations
+- Region-level attribution analysis
+- Faithfulness evaluation (Insertion / Deletion AUC)
+- Threshold calibration and ROC/PR analysis
 
-The system is evaluated on the **Celeb-DF (v2)** dataset and designed for **frame-level and face-level explainability**, suitable for academic research and final-year dissertation work.
+The system is evaluated on **Celeb-DF (v2)** and designed for **video-level forensic analysis with explainability and uncertainty awareness**, suitable for academic research and final-year dissertation work.
 
 ---
 
-## 🎯 Project Motivation
+## 🎯 Research Motivation
 
-Deepfake detection models often act as black boxes.  
-This project addresses two core research questions:
+Deepfake detection models often behave as black boxes. High accuracy alone is insufficient for forensic trust and deployment in sensitive contexts.
 
-1. Can a pretrained Vision Transformer reliably discriminate real vs fake faces on Celeb-DF?
+This project addresses three core research questions:
+
+1. Can a Vision Transformer reliably discriminate real vs fake faces on Celeb-DF?
 2. Are its decisions explainable and faithful to manipulated facial regions?
+3. Can ensemble agreement and alignment signals improve reliability and interpretability?
 
-Rather than only reporting accuracy, this project evaluates:
+Rather than reporting accuracy alone, this system evaluates:
 
 - Discrimination (ROC-AUC, PR-AUC)
-- Calibration and threshold stability
-- Region-based attribution patterns
-- Faithfulness via deletion/insertion curves
+- Threshold stability and calibration
+- Model agreement and alignment
+- Scenario-based reliability classification
+- Attribution faithfulness via deletion/insertion curves
 
-This transforms the project from simple model usage into **scientific model evaluation and explainability research**.
-
----
-
-## 🧠 Model
-
-- Base Model: `prithivMLmods/Deep-Fake-Detector-Model`
-- Architecture: Vision Transformer (ViT-based)
-- Inference: Frame-level, aggregated to video-level
-
-Although the classifier is transformer-based, CNN principles remain central for:
-
-- Face detection
-- Spatial localisation
-- Grad-CAM heatmap generation
-- Faithfulness masking operations
+This transforms the project from a classifier into a **forensic, explainable deepfake analysis framework**.
 
 ---
 
-## 🔍 Key Features
+## 🧠 System Overview
+
+The pipeline consists of six stages:
+
+1. **Video Preprocessing**
+2. **Face Extraction (YuNet)**
+3. **Frame-Level Deepfake Detection (M1–M3)**
+4. **Reliability-Weighted Ensemble Fusion**
+5. **Scenario Classification (S1–S4)**
+6. **Explainability & Faithfulness Evaluation**
+
+---
+
+## 🔍 Core Components
 
 ### 1️⃣ Video Preprocessing
+
 - Frame extraction from videos
 - Face detection using YuNet (ONNX)
-- Face cropping for consistent model input
+- Margin-aware cropping for consistent input
 
-### 2️⃣ Deepfake Detection
-- HuggingFace inference pipeline
-- Frame-level probability prediction (`p_fake`)
+---
+
+### 2️⃣ Deepfake Detection Models
+
+- Base Model (M3): Vision Transformer (ViT-based)
+- Additional models (M1, M2): auxiliary CNN-based predictors
+- Frame-level fake probability (`p_fake`)
 - Video-level aggregation:
   - Mean probability
   - Median probability
-  - Top 10% mean probability
+  - Top 10% mean
 
-### 3️⃣ Explainability (XAI)
+---
+
+### 3️⃣ Reliability-Weighted Ensemble Fusion
+
+A reliability head combines M1–M3 outputs using:
+
+- Model confidence distance from decision boundary
+- Cross-model agreement (A vs B)
+- Alignment score
+- Scenario-based interpretation
+
+Instead of naive averaging, fusion is weighted by reliability
+p_final = reliability * M3 + (1 - reliability) * mean(M1, M2, M3)
+
+---
+
+### 4️⃣ Scenario-Based Reliability Classification
+
+Each video is assigned a scenario:
+
+- **S1:** A/B consensus overrides (possible domain shift)
+- **S2:** M3 dominant but weak consensus
+- **S3:** Strong consensus (high confidence)
+- **S4:** Disagreement / uncertain (needs review)
+
+This introduces structured interpretability beyond probability scores.
+
+---
+
+### 5️⃣ Explainability (XAI)
 
 - Grad-CAM heatmaps
-- MediaPipe-based region attribution:
+- MediaPipe region attribution:
   - Mouth
   - Eye region
   - Face boundary
-- Console-based explanation reports
+- Console explanation reports
 - Saved heatmap overlays
 
-### 4️⃣ Faithfulness Metrics
+---
+
+### 6️⃣ Faithfulness Metrics
+
+To evaluate explanation reliability:
 
 - Deletion AUC
 - Insertion AUC
 - Confidence drop analysis
 
-### 5️⃣ Scientific Evaluation
-
-- ROC Curve
-- PR Curve
-- Threshold calibration:
-  - Default 0.5
-  - Youden’s J
-  - Best F1 threshold
-- Frame-level confusion metrics
+This ensures explanations are not visually appealing but scientifically grounded.
 
 ---
 
 ## 📊 Evaluation Outputs
 
-Running evaluation generates:
-
-```
+Evaluation produces:
 outputs/eval/
 ├── frame_level_metrics.json
 ├── roc_curve.png
 ├── pr_curve.png
-└── all_frames_combined.csv
-```
+├── video_level_metrics.csv
+└── reliability_analysis.csv
 
 Metrics include:
 
 - ROC-AUC
 - PR-AUC
 - Accuracy
-- Precision
-- Recall (TPR)
-- False Positive Rate
-- Optimal threshold values
+- F1-score
+- Threshold calibration (Youden’s J, Best F1)
+- Reliability-weighted fusion comparison
+- Scenario distribution statistics
 
 ---
 
 ## 📂 Project Structure
-
-```
 deepfake-xai-celebdf/
 ├── src/
 │   ├── data/
-│   │   ├── video_to_frames.py
-│   │   ├── extract_faces_from_frames_yunet.py
 │   ├── models/
-│   │   └── hf_predict_frames.py
+│   ├── ensemble/
+│   │   └── reliability.py
 │   ├── xai/
-│   │   └── xai_console_report.py
 │   ├── eval/
-│   │   └── eval_thresholds.py
-│   └── sanity.py
+│   └── utils/
 │
+├── scripts/
 ├── models/
-│   └── face_detection_yunet_2023mar.onnx
-│
 ├── data/
-│   └── celebdf/
-│
-├── outputs/         (generated, not tracked)
+├── outputs/        (generated, not tracked)
 ├── README.md
 └── requirements.txt
-```
 
 ---
 
 ## 🚀 How to Run
 
-### 1️⃣ Install Dependencies
+### 
+1️⃣ Install Dependencies
 
 ```bash
 pip install -r requirements.txt
-```
 
----
-
-### 2️⃣ Extract Frames
-
-```bash
+2️⃣ Extract Frames
 python src/data/video_to_frames.py \
   --video path/to/video.mp4 \
   --out outputs/frames/sample \
   --every_n 5
-```
 
----
-
-### 3️⃣ Extract Faces
-
-```bash
+3️⃣ Extract Faces
 python src/data/extract_faces_from_frames_yunet.py \
   --frames_dir outputs/frames/sample \
   --out_dir outputs/frames_faces/sample \
   --min_face 120 \
   --score_thr 0.9 \
   --margin 0.25
-```
 
----
-
-### 4️⃣ Run Detection
-
-```bash
+4️⃣ Run Deepfake Detection
 python src/models/hf_predict_frames.py \
   --frames_dir outputs/frames_faces/sample \
   --out_dir outputs/preds/sample \
   --model_id prithivMLmods/Deep-Fake-Detector-Model \
   --device mps
-```
 
----
-
-### 5️⃣ Generate XAI Report
-
-```bash
+5️⃣ Generate XAI Report
 python src/xai/xai_console_report.py \
   --frame outputs/frames_faces/sample/face_00010.jpg \
   --model_id prithivMLmods/Deep-Fake-Detector-Model \
   --device mps \
   --target_class 0 \
   --out_dir outputs/xai/sample
-```
 
----
+6️⃣ Run Reliability Evaluation
+python scripts/run_reliability_eval.py
+This evaluates:
+	•	Model C baseline
+	•	Naive ensemble
+	•	Reliability-weighted fusion
+	•	Scenario classification
 
-### 6️⃣ Run Full Evaluation
+📈 Research Contributions
 
-```bash
-python src/eval/eval_thresholds.py
-```
+This project contributes:
+	•	Reliability-aware ensemble fusion for deepfake detection
+	•	Scenario-based interpretability (S1–S4 classification)
+	•	Grad-CAM + region-level attribution analysis
+	•	Faithfulness evaluation using insertion/deletion metrics
+	•	Video-level aggregation with calibration analysis
+	•	Agreement-based uncertainty estimation
 
-This computes:
+The system integrates discrimination, interpretability, and reliability into a unified forensic pipeline.
 
-- ROC-AUC
-- PR-AUC
-- Optimal thresholds
-- Frame-level metrics
+⚠️ Notes
+	•	outputs/ is not tracked in Git.
+	•	Celeb-DF dataset must be downloaded separately.
+	•	No dataset files are included in this repository.
 
----
+📚 Dataset
+	•	Celeb-DF v2
+	•	Real and synthetic videos
+	•	Face-level preprocessing applied before inference
 
-## 📈 Research Contribution
-
-This project goes beyond simple accuracy reporting by:
-
-- Performing threshold calibration analysis
-- Evaluating discrimination vs calibration trade-offs
-- Analysing decision boundary stability
-- Comparing attribution patterns across real and fake samples
-- Measuring explanation faithfulness quantitatively
-
-This transforms the system into an **explainable forensic analysis pipeline** rather than a binary classifier.
-
----
-
-## ⚠️ Notes
-
-- `outputs/` directory is not tracked in Git.
-- Celeb-DF dataset must be downloaded separately.
-- The repository contains code only, not dataset files.
-
----
-
-## 📚 Dataset
-
-- Celeb-DF v2  
-- Real and synthesis videos  
-- Frame-level face cropping applied before inference  
-
----
-
-## 🏆 Academic Context
+🏆 Academic Context
 
 This repository supports a Final Year Project focused on:
 
-> Explainable Deepfake Detection using Vision Transformers and Faithfulness Evaluation.
+Reliability-Aware Explainable Deepfake Detection using Vision Transformers and Ensemble Analysis.
 
-The emphasis is on **scientific evaluation, interpretability, and robustness analysis**, rather than model training alone.
+The emphasis is on:
+	•	Scientific evaluation
+	•	Interpretability
+	•	Reliability modelling
+	•	Robustness analysis
+
+Rather than model training alone.
+
+  
