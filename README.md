@@ -164,6 +164,34 @@ deepfake-xai-celebdf/
 
 ---
 
+⚠️ Notes
+	•	outputs/ is not tracked in Git.
+	•	Celeb-DF dataset must be downloaded separately.
+	•	No dataset files are included in this repository.
+
+⸻
+
+📚 Dataset
+	•	Celeb-DF v2
+	•	Real and synthetic videos
+	•	Face-level preprocessing applied before inference
+
+⸻
+
+🏆 Academic Context
+
+This repository supports a Final Year Project focused on:
+
+Reliability-Aware Explainable Deepfake Detection using Vision Transformers and Ensemble Analysis.
+
+The emphasis is on:
+	•	Scientific evaluation
+	•	Interpretability
+	•	Reliability modelling
+	•	Robustness analysis
+
+Rather than model training alone.
+
 ## 🚀 How to Run
 
 ### 
@@ -208,6 +236,8 @@ This evaluates:
 	•	Naive ensemble
 	•	Reliability-weighted fusion
 	•	Scenario classification
+	
+
 
 
 
