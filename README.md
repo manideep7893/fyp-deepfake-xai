@@ -36,6 +36,17 @@ This transforms the project from a classifier into a **forensic, explainable dee
 
 ---
 
+## 📅 Development Progress
+
+- Phase 1: Vision Transformer baseline implementation
+- Phase 2: Grad-CAM + region attribution integration
+- Phase 3: Faithfulness evaluation (Deletion/Insertion AUC)
+- Phase 4: Multi-model ensemble (M1–M3)
+- Phase 5: Reliability-weighted fusion with scenario classification (S1–S4)
+- Phase 6: Video-level evaluation and calibration analysis
+
+---
+
 ## 🧠 System Overview
 
 The pipeline consists of six stages:
@@ -240,5 +251,3 @@ This evaluates:
 
 
 
-
-  
