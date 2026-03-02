@@ -209,40 +209,6 @@ This evaluates:
 	•	Reliability-weighted fusion
 	•	Scenario classification
 
-📈 Research Contributions
 
-This project contributes:
-	•	Reliability-aware ensemble fusion for deepfake detection
-	•	Scenario-based interpretability (S1–S4 classification)
-	•	Grad-CAM + region-level attribution analysis
-	•	Faithfulness evaluation using insertion/deletion metrics
-	•	Video-level aggregation with calibration analysis
-	•	Agreement-based uncertainty estimation
-
-The system integrates discrimination, interpretability, and reliability into a unified forensic pipeline.
-
-⚠️ Notes
-	•	outputs/ is not tracked in Git.
-	•	Celeb-DF dataset must be downloaded separately.
-	•	No dataset files are included in this repository.
-
-📚 Dataset
-	•	Celeb-DF v2
-	•	Real and synthetic videos
-	•	Face-level preprocessing applied before inference
-
-🏆 Academic Context
-
-This repository supports a Final Year Project focused on:
-
-Reliability-Aware Explainable Deepfake Detection using Vision Transformers and Ensemble Analysis.
-
-The emphasis is on:
-	•	Scientific evaluation
-	•	Interpretability
-	•	Reliability modelling
-	•	Robustness analysis
-
-Rather than model training alone.
 
   
