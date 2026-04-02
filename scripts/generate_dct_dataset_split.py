@@ -33,7 +33,7 @@ def build_dataset(video_tags, frames_root):
 
 def main():
 
-    split_path = Path("outputs/eval/video_split_40_10.json")
+    split_path = Path("outputs/eval/video_split_random_3.json")
     frames_root = Path("outputs/frames_faces")
 
     if not split_path.exists():

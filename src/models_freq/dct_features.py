@@ -2,16 +2,17 @@ import cv2
 import numpy as np
 
 
-def compute_dct_features(image_path, size=224, block=16):
+def compute_dct_features(image_path, size=224, block=16, drop_dc=True):
     """
     Compute DCT-based frequency features from an image.
 
     Steps:
     1. Load grayscale image
     2. Resize to fixed size
-    3. Normalize + mean-center
+    3. Normalize
     4. Compute 2D DCT
     5. Extract low-frequency block
+    6. Flatten to feature vector
     """
 
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -19,25 +20,29 @@ def compute_dct_features(image_path, size=224, block=16):
     if img is None:
         raise ValueError(f"Could not read image: {image_path}")
 
-    # Resize
     img = cv2.resize(img, (size, size))
-
-    # Normalize
     img = img.astype(np.float32) / 255.0
 
-    # Mean-center (improves DCT stability)
-    img = img - np.mean(img)
-
-    # Compute DCT
     dct = cv2.dct(img)
 
-    # Log magnitude stabilisation
-    dct = np.log(np.abs(dct) + 1e-8)
+    block = min(block, size)
+    dct_block = dct[:block, :block].copy()
 
-    # Extract low-frequency block
-    dct_block = dct[:block, :block]
+    if drop_dc:
+        dct_block[0, 0] = 0.0
 
-    # Flatten to feature vector
     features = dct_block.flatten().astype(np.float32)
 
     return features
+
+
+def dct_feature_vector(image_path, size=224, block=16, drop_dc=True):
+    """
+    Compatibility wrapper used by dataset-generation scripts.
+    """
+    return compute_dct_features(
+        image_path=image_path,
+        size=size,
+        block=block,
+        drop_dc=drop_dc,
+    )

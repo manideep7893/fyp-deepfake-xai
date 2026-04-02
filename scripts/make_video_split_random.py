@@ -6,7 +6,7 @@ OUT = Path("outputs/eval")
 OUT.mkdir(parents=True, exist_ok=True)
 
 # change this number later for split 2 and split 3
-SEED = 42
+SEED = 999
 random.seed(SEED)
 
 fake_videos = [f"fake_{i:03d}" for i in range(1, 51)]
@@ -26,7 +26,7 @@ split = {
     "test": sorted(test_fake + test_real),
 }
 
-out_path = OUT / "video_split_random_1.json"
+out_path = OUT / "video_split_random_3.json"
 out_path.write_text(json.dumps(split, indent=2))
 
 print("Saved split:", out_path)
